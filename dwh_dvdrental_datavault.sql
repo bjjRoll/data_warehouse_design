@@ -7,14 +7,14 @@
 CREATE EXTENSION postgres_fdw;
 
 CREATE SERVER film_pg FOREIGN DATA WRAPPER postgres_fdw OPTIONS (
-	host '127.0.0.1',
-	dbname 'dvdrental',
-	port '5432'
+    host '127.0.0.1',
+    dbname 'dvdrental',
+    port '5432'
 );
 
 CREATE USER MAPPING FOR postgres SERVER film_pg OPTIONS (
-	USER 'postgres',
-	PASSWORD 'root'
+    USER 'postgres',
+    PASSWORD 'root'
 );
 
 DROP SCHEMA IF EXISTS film_src;
@@ -23,11 +23,11 @@ CREATE SCHEMA film_src AUTHORIZATION postgres;
 -- Создание типов данных, как в источнике
 DROP TYPE IF EXISTS public.mpaa_rating;
 CREATE TYPE public.mpaa_rating AS ENUM (
-	'G',
-	'PG',
-	'PG-13',
-	'R',
-	'NC-17');
+    'G',
+    'PG',
+    'PG-13',
+    'R',
+    'NC-17');
 
 CREATE DOMAIN public."year" AS integer CHECK (VALUE >= 1901 AND VALUE <= 2155);
 
@@ -48,71 +48,71 @@ CREATE SCHEMA IF NOT EXISTS mart;
 -- Процедура по созданию таблиц Staging-слоя
 CREATE OR REPLACE PROCEDURE staging.create_all_tables()
 AS $$
-	BEGIN 
-		DROP TABLE IF EXISTS staging.last_update_data;
-		DROP TABLE IF EXISTS staging.film;
-		DROP TABLE IF EXISTS staging.inventory;
-	    DROP TABLE IF EXISTS staging.rental;
+    BEGIN 
+        DROP TABLE IF EXISTS staging.last_update_data;
+	DROP TABLE IF EXISTS staging.film;
+	DROP TABLE IF EXISTS staging.inventory;
+	DROP TABLE IF EXISTS staging.rental;
 		
-		-- Техническая таблица для инкрементальной загрузки данных из источника
-		CREATE TABLE staging.last_update_data (
-			table_name varchar(100) NOT NULL,
-			update_dt  timestamp NOT NULL
-		);
+	-- Техническая таблица для инкрементальной загрузки данных из источника
+	CREATE TABLE staging.last_update_data (
+	    table_name varchar(100) NOT NULL,
+	    update_dt  timestamp NOT NULL
+	);
 	
-		-- Фильмы
-		CREATE TABLE staging.film (
-			film_id                int NOT NULL,
-			title                  varchar(255) NOT NULL,
-			description            text NULL,
-			release_year           int2 NULL,
-			language_id            int2 NOT NULL,
-			rental_duration        int2 NOT NULL,
-			rental_rate            numeric(4, 2) NOT NULL,
-			length                 int2 NULL,
-			replacement_cost       numeric(5, 2) NOT NULL,
-			rating                 varchar(10) NULL,
-			last_update            timestamp NOT NULL,
-			special_features       _text NULL,
-			fulltext               tsvector NOT NULL,		
-			hub_film_hash_key      varchar(32) NOT NULL,
-			film_static_hash_diff  varchar(32) NOT NULL,
-			film_dynamic_hash_diff varchar(32) NOT NULL,
-			load_date              timestamp NOT NULL,
-			record_source          varchar(50) NOT NULL
-		);
+	-- Фильмы
+	CREATE TABLE staging.film (
+	    film_id                int NOT NULL,
+	    title                  varchar(255) NOT NULL,
+	    description            text NULL,
+	    release_year           int2 NULL,
+	    language_id            int2 NOT NULL,
+	    rental_duration        int2 NOT NULL,
+	    rental_rate            numeric(4, 2) NOT NULL,
+	    length                 int2 NULL,
+	    replacement_cost       numeric(5, 2) NOT NULL,
+	    rating                 varchar(10) NULL,
+	    last_update            timestamp NOT NULL,
+	    special_features       _text NULL,
+	    fulltext               tsvector NOT NULL,		
+	    hub_film_hash_key      varchar(32) NOT NULL,
+	    film_static_hash_diff  varchar(32) NOT NULL,
+	    film_dynamic_hash_diff varchar(32) NOT NULL,
+	    load_date              timestamp NOT NULL,
+	    record_source          varchar(50) NOT NULL
+	);
 
-		-- Инвентарь (Диски)
-		CREATE TABLE staging.inventory (
-			inventory_id                 int4 NOT NULL,
-			film_id                      int2 NOT NULL,
-			store_id                     int2 NOT NULL,
-			last_update                  timestamp NOT NULL,
-			deleted                      timestamp NULL,
-			hub_inventory_hash_key       varchar(32) NOT NULL,
-			hub_film_hash_key            varchar(32) NOT NULL,
-			link_film_inventory_hash_key varchar(32) NOT NULL,
-			load_date                    timestamp NOT NULL,
-			record_source                varchar(50) NOT NULL
-		);
+	-- Инвентарь (Диски)
+	CREATE TABLE staging.inventory (
+	    inventory_id                 int4 NOT NULL,
+	    film_id                      int2 NOT NULL,
+	    store_id                     int2 NOT NULL,
+	    last_update                  timestamp NOT NULL,
+	    deleted                      timestamp NULL,
+	    hub_inventory_hash_key       varchar(32) NOT NULL,
+	    hub_film_hash_key            varchar(32) NOT NULL,
+	    link_film_inventory_hash_key varchar(32) NOT NULL,
+	    load_date                    timestamp NOT NULL,
+	    record_source                varchar(50) NOT NULL
+	);
 	
-		-- Аренда (Прокат)
-		CREATE TABLE staging.rental (
-			rental_id                      int4 NOT NULL,
-			rental_date                    timestamp NOT NULL,
-			inventory_id                   int4 NOT NULL,
-			customer_id                    int2 NOT NULL,
-			return_date                    timestamp,
-			staff_id                       int2 NOT NULL,
-			last_update                    timestamp NOT NULL,
-			deleted		                   timestamp NULL,
-			hub_rental_hash_key            varchar(32) NOT NULL,
-			hub_inventory_hash_key         varchar(32) NOT NULL,
-			link_rental_inventory_hash_key varchar(32) NOT NULL,
-			load_date                      timestamp NOT NULL,
-			record_source                  varchar(50) NOT NULL
-		);
-	END;
+	-- Аренда (Прокат)
+	CREATE TABLE staging.rental (
+	    rental_id                      int4 NOT NULL,
+	    rental_date                    timestamp NOT NULL,
+	    inventory_id                   int4 NOT NULL,
+	    customer_id                    int2 NOT NULL,
+	    return_date                    timestamp,
+	    staff_id                       int2 NOT NULL,
+	    last_update                    timestamp NOT NULL,
+	    deleted		                   timestamp NULL,
+	    hub_rental_hash_key            varchar(32) NOT NULL,
+	    hub_inventory_hash_key         varchar(32) NOT NULL,
+	    link_rental_inventory_hash_key varchar(32) NOT NULL,
+	    load_date                      timestamp NOT NULL,
+	    record_source                  varchar(50) NOT NULL
+	);
+    END;
 $$ LANGUAGE plpgsql;
 --==================================================================================--
 
@@ -120,154 +120,144 @@ $$ LANGUAGE plpgsql;
 -- Функция, возвращающая время последней загрузки в таблицы
 CREATE OR REPLACE FUNCTION staging.get_last_update_table(table_name varchar) RETURNS timestamp
 AS $$
-	BEGIN 
-		RETURN coalesce(
-			(
-				SELECT 
-					max(update_dt)
-		 		FROM 
-		 			staging.last_update_data lu 
-		 		WHERE 
-		 			lu.table_name = get_last_update_table.table_name
-		 	),
+    BEGIN 
+        RETURN coalesce(
+	    (
+	      SELECT 
+	          max(update_dt)
+	      FROM 
+	          staging.last_update_data lu 
+	      WHERE 
+		  lu.table_name = get_last_update_table.table_name
+	    ),
 				
-		 	'1900-01-01'::date);
-	END;	
+	    '1900-01-01'::date
+	);
+    END;	
 $$ LANGUAGE plpgsql;
 
 -- Процедура вставки данных в last_update_data, в которой содержится информация по времени загрузки данных в конкретную таблицу
 CREATE OR REPLACE PROCEDURE staging.set_table_load_time(table_name varchar, current_update_dt timestamp DEFAULT now()) 
 AS $$
-	BEGIN
-		INSERT INTO staging.last_update_data 
-		(
-			table_name, 
-			update_dt
-		)
-		VALUES
-		(
-			table_name, 
-			current_update_dt
-		);
-	END;
-$$
-LANGUAGE plpgsql;
+    BEGIN
+        INSERT INTO staging.last_update_data (table_name, update_dt)
+	VALUES (table_name, current_update_dt);
+    END;
+$$ LANGUAGE plpgsql;
 
 --========================= ЗАПОЛНЕНИЕ ДАННЫМИ STAGING-СЛОЯ ==========================--
 -- Процедура для заполнения таблицы film
 CREATE OR REPLACE PROCEDURE staging.upload_film(current_update_dt timestamp)
 AS $$
-	BEGIN
-		TRUNCATE TABLE staging.film;
-		INSERT INTO staging.film (film_id, title, description, release_year, language_id, rental_duration, rental_rate, length, replacement_cost, rating, last_update, special_features, fulltext, hub_film_hash_key, film_static_hash_diff, film_dynamic_hash_diff, load_date, record_source)
-		SELECT 
-			film_id, 
-			title, 
-			description, 
-			release_year, 
-			language_id, 
-			rental_duration, 
-			rental_rate, 
-			length, 
-			replacement_cost, 
-			rating, 
-			last_update, 
-			special_features, 
-			fulltext,
-			upper(md5(upper(trim(coalesce(film_id::text, '')))))    AS hub_film_hash_key,
-			upper(md5(upper(
-				concat(
-					trim(coalesce(title::text, '')), ';',				
-					trim(coalesce(description::text, '')), ';',
-					trim(coalesce(release_year::text, '')), ';',
-					trim(coalesce(length::text, '')), ';',
-					trim(coalesce(rating::text, ''))
-				)
-			)))                                                     AS film_static_hash_diff, 
-			upper(md5(upper(
-				concat(
-					trim(coalesce(rental_duration::text, '')), ';',				
-					trim(coalesce(rental_rate::text, '')), ';',
-					trim(coalesce(replacement_cost::text, ''))
-				)
-			)))                                                     AS film_dynamic_hash_diff,
-			current_update_dt                                       AS load_date,
-			'dvdrental_db'                                          AS record_source
-		FROM 
-			film_src.film;
+    BEGIN
+        TRUNCATE TABLE staging.film;
+	INSERT INTO staging.film (film_id, title, description, release_year, language_id, rental_duration, rental_rate, length, replacement_cost, rating, last_update, special_features, fulltext, hub_film_hash_key, film_static_hash_diff, film_dynamic_hash_diff, load_date, record_source)
+	SELECT 
+	    film_id, 
+	    title, 
+	    description, 
+	    release_year, 
+	    language_id, 
+	    rental_duration, 
+	    rental_rate, 
+	    length, 
+	    replacement_cost, 
+	    rating, 
+	    last_update, 
+	    special_features, 
+	    fulltext,
+	    upper(md5(upper(trim(coalesce(film_id::text, '')))))    AS hub_film_hash_key,
+	    upper(md5(upper(
+	         concat(
+		         trim(coalesce(title::text, '')), ';',				
+		         trim(coalesce(description::text, '')), ';',
+		         trim(coalesce(release_year::text, '')), ';',
+		         trim(coalesce(length::text, '')), ';',
+		         trim(coalesce(rating::text, ''))
+		       )
+	    )))                                                     AS film_static_hash_diff, 
+	    upper(md5(upper(
+	         concat(
+		         trim(coalesce(rental_duration::text, '')), ';',				
+		         trim(coalesce(rental_rate::text, '')), ';',
+		         trim(coalesce(replacement_cost::text, ''))
+		       )
+	    )))                                                     AS film_dynamic_hash_diff,
+	    current_update_dt                                       AS load_date,
+	    'dvdrental_db'                                          AS record_source
+	FROM 
+	    film_src.film;
 	
-		CALL staging.set_table_load_time('staging.film', current_update_dt);
-	END;
+	CALL staging.set_table_load_time('staging.film', current_update_dt);
+    END;
 $$ LANGUAGE plpgsql;
 
 -- Процедура для заполнения таблицы inventory
 CREATE OR REPLACE PROCEDURE staging.upload_inventory(current_update_dt timestamp)
 AS $$
-	BEGIN
-		TRUNCATE TABLE staging.inventory;
-		INSERT INTO staging.inventory (inventory_id, film_id, store_id, last_update, deleted, hub_inventory_hash_key, hub_film_hash_key, link_film_inventory_hash_key, load_date, record_source)
-		SELECT 
-			inventory_id, 
-			film_id, 
-			store_id,
-			last_update,
-			deleted,
-			upper(md5(upper(trim(coalesce(inventory_id::text, ''))))) AS hub_inventory_hash_key,
-			upper(md5(upper(trim(coalesce(film_id::text, '')))))      AS hub_film_hash_key,
-			upper(md5(upper(
-				concat(
-					trim(coalesce(film_id::text, '')), 
-					';',
-					trim(coalesce(inventory_id::text, ''))
-				)
-			)))                                                       AS link_film_inventory_hash_key,
-			current_update_dt                                         AS load_date,
-			'dvdrental_db'                                            AS record_source
-		FROM 
-			film_src.inventory;
+    BEGIN
+        TRUNCATE TABLE staging.inventory;
+	INSERT INTO staging.inventory (inventory_id, film_id, store_id, last_update, deleted, hub_inventory_hash_key, hub_film_hash_key, link_film_inventory_hash_key, load_date, record_source)
+	SELECT 
+	    inventory_id, 
+	    film_id, 
+	    store_id,
+	    last_update,
+	    deleted,
+	    upper(md5(upper(trim(coalesce(inventory_id::text, ''))))) AS hub_inventory_hash_key,
+	    upper(md5(upper(trim(coalesce(film_id::text, '')))))      AS hub_film_hash_key,
+	    upper(md5(upper(
+                 concat(
+			 trim(coalesce(film_id::text, '')), ';',
+			 trim(coalesce(inventory_id::text, ''))
+		       )
+	    )))                                                       AS link_film_inventory_hash_key,
+	    current_update_dt                                         AS load_date,
+	    'dvdrental_db'                                            AS record_source
+	FROM 
+	    film_src.inventory;
 		
-		CALL staging.set_table_load_time('staging.inventory', current_update_dt);
-	END;
+	CALL staging.set_table_load_time('staging.inventory', current_update_dt);
+    END;
 $$ LANGUAGE plpgsql;
 
 -- Процедура для заполнения таблицы rental
 CREATE OR REPLACE PROCEDURE staging.upload_rental(current_update_dt timestamp)
 AS $$
-	DECLARE 
-		var_last_update_dt timestamp;
-	BEGIN
-		var_last_update_dt = staging.get_last_update_table('staging.rental');
+    DECLARE 
+        var_last_update_dt timestamp;
+    BEGIN
+        var_last_update_dt = staging.get_last_update_table('staging.rental');
  
-		TRUNCATE TABLE staging.rental;
-		INSERT INTO staging.rental (rental_id, rental_date, inventory_id, customer_id, return_date, staff_id, last_update, deleted, hub_rental_hash_key, hub_inventory_hash_key, link_rental_inventory_hash_key, load_date, record_source)
-		SELECT 
-			rental_id, 
-			rental_date, 
-			inventory_id, 
-			customer_id, 
-			return_date, 
-			staff_id,
-			last_update,
-			deleted,
-			upper(md5(upper(trim(coalesce(rental_id::text, '')))))    AS hub_rental_hash_key, 
-			upper(md5(upper(trim(coalesce(inventory_id::text, ''))))) AS hub_inventory_hash_key, 
-			upper(md5(upper(
-				concat(
-					trim(coalesce(rental_id::text, '')), 
-					';',
-					trim(coalesce(inventory_id::text, ''))
-				)
-			)))                                                       AS link_rental_inventory_hash_key,
-			current_update_dt                                         AS load_date,
-			'dvdrental_db'                                            AS record_source
-		FROM 
-			film_src.rental
-		WHERE 
-			last_update >= var_last_update_dt OR 
-			deleted >= var_last_update_dt;
+        TRUNCATE TABLE staging.rental;
+        INSERT INTO staging.rental (rental_id, rental_date, inventory_id, customer_id, return_date, staff_id, last_update, deleted, hub_rental_hash_key, hub_inventory_hash_key, link_rental_inventory_hash_key, load_date, record_source)
+        SELECT 
+            rental_id, 
+	    rental_date, 
+	    inventory_id, 
+	    customer_id, 
+	    return_date, 
+	    staff_id,
+	    last_update,
+	    deleted,
+	    upper(md5(upper(trim(coalesce(rental_id::text, '')))))    AS hub_rental_hash_key, 
+	    upper(md5(upper(trim(coalesce(inventory_id::text, ''))))) AS hub_inventory_hash_key, 
+	    upper(md5(upper(
+	         concat(
+		         trim(coalesce(rental_id::text, '')), ';',
+		         trim(coalesce(inventory_id::text, ''))
+		       )
+	    )))                                                       AS link_rental_inventory_hash_key,
+	    current_update_dt                                         AS load_date,
+	    'dvdrental_db'                                            AS record_source
+        FROM 
+            film_src.rental
+        WHERE 
+            last_update >= var_last_update_dt OR 
+	    deleted >= var_last_update_dt;
 	
-		CALL staging.set_table_load_time('staging.rental', current_update_dt);
-	END;
+        CALL staging.set_table_load_time('staging.rental', current_update_dt);
+    END;
 $$ LANGUAGE plpgsql;
 --==================================================================================--
 
